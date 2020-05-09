@@ -1,8 +1,11 @@
 from bs4 import BeautifulSoup,  NavigableString, Comment
 import requests
 import pandas as pd 
+import pycountry
+import json
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
+countries_info = {}
 
 def get_main_text(iata_url):
   main_text = None
@@ -18,24 +21,40 @@ def get_main_text(iata_url):
     return main_text
 
 def get_country_info(country_container):
+  #Setup variables
   country = None
   published_date = None
   info = ""
   country_info_df = pd.DataFrame(columns= ['country', 'published_date', 'info'])
+  country_info_json = {}
+
+  #Get the country name
   country = country_container.text
-
   current_container = country_container
+  country_info_json[country] = {}
 
+  #Add ISO2 code
+  try:
+    country_object =  pycountry.countries.search_fuzzy(country)[0]
+    country_info_json[country]['ISO2'] = country_object.alpha_2
+  except:
+    country_info_json[country]['ISO2'] = "NA"
+
+  #Get published date
   try:
     current_container = current_container.next_sibling
-    published_date = current_container
+    if (isinstance(current_container, str)):
+      if 'published' in current_container:
+        published_date = current_container.split("published ")[1]
+      else:
+        published_date = current_container
   except Exception as ex:
     print("Cannot find updated date for " + country + " error " + str(ex))
 
+  country_info_json[country]["published_date"] = published_date
+
+  #get the info
   current_container = current_container.next_sibling
-
-
-
   try:
     while current_container.name != 'b' :
       if ( isinstance(current_container, str)):
@@ -45,6 +64,9 @@ def get_country_info(country_container):
       current_container = current_container.next_sibling
   except Exception as ex:
     print("Cannot find travel restrictions info for " + country + " error " + str(ex))
+  country_info_json[country]["info"] = info
+  countries_info.update(country_info_json)
+
   country_info_df = country_info_df.append({'country': country, 'published_date': published_date, 'info': info}, ignore_index=True)
   return country_info_df  
 
@@ -64,5 +86,6 @@ def parse_main_text(main_text):
 
 main_text = get_main_text(url)
 df = parse_main_text(main_text)
-df.to_json('IATA_data.json')
 
+with open('IATA_data.json', 'w') as outfile:
+  json.dump(countries_info, outfile)
