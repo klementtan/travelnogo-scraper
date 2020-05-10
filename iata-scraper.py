@@ -2,9 +2,12 @@ from bs4 import BeautifulSoup,  NavigableString, Comment
 import requests
 import pandas as pd 
 import pycountry
+import pdb
 import json
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
+end_of_page_identifier = "If any new travel restrictions will be imposed, we will ensure that Timatic is updated accordingly. We are monitoring this outbreak very closely and we will keep you posted on the developments."
+
 countries_info = {}
 
 def get_main_text(iata_url):
@@ -30,15 +33,19 @@ def get_country_info(country_container):
 
   #Get the country name
   country = country_container.text
-  current_container = country_container
   country_info_json[country] = {}
-
+  
   #Add ISO2 code
   try:
     country_object =  pycountry.countries.search_fuzzy(country)[0]
     country_info_json[country]['ISO2'] = country_object.alpha_2
   except:
+    country_info_json[country]['error'] = 'Cannot identify the country'
     country_info_json[country]['ISO2'] = "NA"
+
+
+
+  current_container = country_container
 
   #Get published date
   try:
@@ -57,10 +64,25 @@ def get_country_info(country_container):
   current_container = current_container.next_sibling
   try:
     while current_container.name != 'b' :
+
+      #reach end of page
+
+      if end_of_page_identifier in current_container:
+        break
+
+      #extract the info 
+
       if ( isinstance(current_container, str)):
         info += current_container
         if (len(current_container) > 0):
           info += '\n'
+      
+      # to account for bad html formatting on iata
+
+      if current_container.next_sibling == None:
+        parent = current_container.parent
+        info = parent.next_sibling.text
+        break
       current_container = current_container.next_sibling
   except Exception as ex:
     print("Cannot find travel restrictions info for " + country + " error " + str(ex))
