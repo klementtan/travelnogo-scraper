@@ -7,6 +7,8 @@ import json
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
 end_of_page_identifier = "If any new travel restrictions will be imposed, we will ensure that Timatic is updated accordingly. We are monitoring this outbreak very closely and we will keep you posted on the developments."
+all_countries_file = open('all_countries.json')
+all_countries_json = json.load(all_countries_file)
 
 countries_info = {}
 
@@ -86,6 +88,17 @@ def get_country_info(country_container):
       current_container = current_container.next_sibling
   except Exception as ex:
     print("Cannot find travel restrictions info for " + country + " error " + str(ex))
+
+  #Add related_countries
+
+  possible_bannees = []
+
+  for possible_country in all_countries_json:
+    if possible_country in info:
+      if possible_country.upper() != country.upper():
+        possible_bannees.append(possible_country)
+  
+  country_info_json[country]["possible_bannees"] = possible_bannees
   country_info_json[country]["info"] = info
   countries_info.update(country_info_json)
 
