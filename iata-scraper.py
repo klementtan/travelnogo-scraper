@@ -4,6 +4,7 @@ import pandas as pd
 import pycountry
 import pdb
 import json
+from datetime import date
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
 end_of_page_identifier = "If any new travel restrictions will be imposed, we will ensure that Timatic is updated accordingly. We are monitoring this outbreak very closely and we will keep you posted on the developments."
@@ -96,7 +97,7 @@ def get_country_info(country_container):
   for possible_country in all_countries_json:
     if possible_country in info:
       if possible_country.upper() != country.upper():
-        possible_bannees.append(possible_country)
+        possible_bannees.append(pycountry.countries.search_fuzzy(possible_country)[0].alpha_2)
   
   country_info_json[country]["possible_bannees"] = possible_bannees
   country_info_json[country]["info"] = info
@@ -111,7 +112,8 @@ def get_country_info(country_container):
 def parse_main_text(main_text):
   all_country_info_df = pd.DataFrame(columns= ['country', 'published_date', 'info'])
   contry_b_tags = main_text.findAll('b')
-  for country_b_tag in contry_b_tags:
+  for num,country_b_tag in enumerate(contry_b_tags, start=1):
+    print(str(num) + '/' + str(len(contry_b_tags)))
     if country_b_tag.text == 'NOTE':
       continue
     else:
@@ -122,5 +124,20 @@ def parse_main_text(main_text):
 main_text = get_main_text(url)
 df = parse_main_text(main_text)
 
+request_payload = {}
+request_payload['date'] = date.today().strftime("%d.%m.%Y")
+request_payload['scrape_data'] = countries_info
+
 with open('IATA_data.json', 'w') as outfile:
-  json.dump(countries_info, outfile)
+  json.dump(request_payload, outfile)
+
+
+backend_url = 'https://61d6f57d.ngrok.io'
+
+# try:
+#   response = requests.post(url + '/api/v1/scrapper/iata', data=request_payload)
+#   if response.status_code == 200:
+#     #update slack
+# except Exception e:
+#   #updatew slack
+  
