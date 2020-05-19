@@ -1,0 +1,8 @@
+bs4
+requests
+pycountry
+datetime
+pandas
+google-cloud-language
+lxml
+demjson
