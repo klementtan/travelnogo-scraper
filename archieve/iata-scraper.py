@@ -182,8 +182,6 @@ with open('IATA_data.json', 'w') as outfile:
   json.dump(request_payload, outfile)
 
 
-backend_url = 'https://61d6f57d.ngrok.io'
-
 with open('country_error.json', 'w') as outfile:
   json.dump(error_countries, outfile)
 

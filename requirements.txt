@@ -6,3 +6,4 @@ pandas
 google-cloud-language
 lxml
 demjson
+python-dotenv

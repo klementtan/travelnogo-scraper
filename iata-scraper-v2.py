@@ -9,10 +9,24 @@ from datetime import date
 from tokenize import tokenize, untokenize, NUMBER, STRING, NAME, OP
 import numpy
 import demjson
+from dotenv import load_dotenv
+import os
+import sys
+from pathlib import Path  # python3 only
+
+load_dotenv()
+
+try:
+  env = sys.argv[1]
+  if (env != 'dev') & (env != 'prod'):
+    raise Exception('Invalid value env value: ' + env)
+except IndexError:
+  raise Exception("Enter env variable `iata-scraper-v2.py dev`")
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
 all_countries_file = open('all_countries.json')
 all_countries_json = json.load(all_countries_file)
+
 
 
 countries_info = {}
@@ -101,6 +115,16 @@ def process_all_countries_dictionary(js_object_dictionary):
     print("Processing: " + country_alpha_2 )
     process_a_country_dictionary(country_alpha_2, countries_dict[country_alpha_2])
 
+def send_slack_message(message):
+  body = {
+    "text": message
+  }
+  headers = {
+    'Content-Type': 'application/json',
+  }
+  response = requests.post(os.getenv('SLACK_URL'), data=json.dumps(body), headers=headers)
+
+
 def post_to_db():
   request_payload = {}
   request_payload['date'] = date.today().strftime("%d.%m.%Y")
@@ -109,11 +133,33 @@ def post_to_db():
 
   with open('IATA_data_v2.json', 'w') as outfile:
     json.dump(request_payload, outfile)
-    
+  
+  host = None
+  
+  if (env == 'prod'):
+    host = os.getenv('PROD')
+  elif env == 'dev':
+    host = os.getenv('DEV')
+  else:
+    print('Invalid env: ' + env)
+    #Send error message to be
+  
+  endpoint = host + '/api/v1/scraper/iata'
+  headers = {
+    'Content-Type': 'application/json',
+    'X-TRAVELNOGO-KEY': os.getenv('X_TRAVELNOGO_KEY')
+  }
+  response = requests.post(endpoint, data=json.dumps(request_payload), headers=headers, timeout=300)
+  return response.status_code
 
+
+    
+send_slack_message('Starting scraper in ' + env )
 script_text = get_script_text(url)
 json_object_text = parse_raw_script(script_text)
 all_country_info_dictionary = demjson.decode(json_object_text)
 process_all_countries_dictionary(all_country_info_dictionary)
-
-post_to_db()
+send_slack_message('Finished scraping. Sending data to server...')
+code = post_to_db()
+print(code)
+send_slack_message('Sever responded with: ' + str(code))
