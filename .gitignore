@@ -1,4 +1,2 @@
 .env
-IATA_data_v2.json
-all_countries.json
 venv/
