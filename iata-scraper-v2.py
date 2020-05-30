@@ -25,7 +25,7 @@ except IndexError:
 
 url = 'https://www.iatatravelcentre.com/international-travel-document-news/1580226297.htm'
 all_countries_file = open('all_countries.json')
-all_countries_json [
+all_countries_json = [
 	"Afghanistan",
 	"Albania",
 	"Algeria",
