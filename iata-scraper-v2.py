@@ -356,7 +356,7 @@ def process_a_country_dictionary(country_alpha_2, country_object):
     error = {}
     error['country_alpha_2'] = country_alpha_2
     error['scrape_data'] = country_soup.text
-    error['python error message'] = e
+    error['python_error_message'] = str(e)
     scraping_error.append(error)
 
 def process_all_countries_dictionary(js_object_dictionary):
